@@ -11,24 +11,24 @@ import (
 	cu "github.com/Davincible/chromedp-undetected"
 )
 
-func NewStealthContext(duration time.Duration) (context.Context, context.CancelFunc) {
+// NewStealthContext creates a context with undetected-chromedp
+func NewStealthContext(timeout time.Duration, headless bool) (context.Context, context.CancelFunc) {
 	chromePath := getChromePath()
-	if chromePath == "" {
-		log.Fatal("Could not find Google Chrome installation.")
+	var options []cu.ConfigOption
+	if chromePath != "" {
+		options = append(options, cu.WithChromeBinary(chromePath))
+	} else {
+		log.Println("Could not find Google Chrome installation. Chromedp will attempt to find it automatically.")
 	}
-	// Note: We are using the default config here.
-	// If you need more customization you can expose config struct.
-	ctx, cancel, err := cu.New(cu.NewConfig(
-		cu.WithChromeBinary(chromePath),
-	))
+
+	options = append(options, cu.WithTimeout(timeout))
+	options = append(options, cu.WithHeadless(headless))
+
+	ctx, cancel, err := cu.New(cu.NewConfig(options...))
 	if err != nil {
-		log.Fatalf("Failed to create undetected context: %v", err)
+		log.Fatalf("Failed to create stealth context: %v", err)
 	}
-	ctx, cancelTimeout := context.WithTimeout(ctx, duration)
-	return ctx, func() {
-		cancelTimeout()
-		cancel()
-	}
+	return ctx, cancel
 }
 
 func getChromePath() string {
