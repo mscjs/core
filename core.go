@@ -14,17 +14,26 @@ import (
 // NewStealthContext creates a context with undetected-chromedp
 func NewStealthContext(timeout time.Duration, headless bool) (context.Context, context.CancelFunc) {
 	chromePath := getChromePath()
-	var options []cu.ConfigOption
+
+	// Start with basic options
+	// Actually cu.NewConfig takes ...Option.
+	// We'll build a slice of options.
+	var opts []cu.Option
+
 	if chromePath != "" {
-		options = append(options, cu.WithChromeBinary(chromePath))
+		opts = append(opts, cu.WithChromeBinary(chromePath))
 	} else {
 		log.Println("Could not find Google Chrome installation. Chromedp will attempt to find it automatically.")
 	}
 
-	options = append(options, cu.WithTimeout(timeout))
-	options = append(options, cu.WithHeadless(headless))
+	opts = append(opts, cu.WithTimeout(timeout))
 
-	ctx, cancel, err := cu.New(cu.NewConfig(options...))
+	// Only add WithHeadless if true (it takes no args and enables it)
+	if headless {
+		opts = append(opts, cu.WithHeadless())
+	}
+
+	ctx, cancel, err := cu.New(cu.NewConfig(opts...))
 	if err != nil {
 		log.Fatalf("Failed to create stealth context: %v", err)
 	}
