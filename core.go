@@ -30,7 +30,13 @@ func NewStealthContext(timeout time.Duration, headless bool) (context.Context, c
 
 	// Only add WithHeadless if true (it takes no args and enables it)
 	if headless {
-		opts = append(opts, cu.WithHeadless())
+		// undetected-chromedp does not support headless on Darwin (macOS).
+		// We auto-disable it to prevent crashes, but log a warning.
+		if runtime.GOOS == "darwin" {
+			log.Println("Warning: Headless mode is not supported on macOS by the undetected driver. Falling back to visible mode.")
+		} else {
+			opts = append(opts, cu.WithHeadless())
+		}
 	}
 
 	ctx, cancel, err := cu.New(cu.NewConfig(opts...))
