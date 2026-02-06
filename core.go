@@ -2,9 +2,12 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -39,7 +42,21 @@ func NewStealthContext(timeout time.Duration, headless bool, proxy string) (cont
 		}
 	}
 
+	// Parse proxy if present
 	if proxy != "" {
+		proxyURL, err := url.Parse(proxy)
+		if err == nil && proxyURL.User != nil {
+			// Proxy has auth, create extension
+			pwd, _ := proxyURL.User.Password()
+			extPath, err := createProxyAuthExtension(proxyURL.Hostname(), proxyURL.Port(), proxyURL.User.Username(), pwd)
+			if err != nil {
+				log.Printf("Failed to create proxy extension: %v", err)
+			} else {
+				opts = append(opts, cu.WithExtensions(extPath))
+				// Use sanitized URL for the proxy flag
+				proxy = fmt.Sprintf("%s://%s:%s", proxyURL.Scheme, proxyURL.Hostname(), proxyURL.Port())
+			}
+		}
 		opts = append(opts, cu.WithChromeFlags(chromedp.ProxyServer(proxy)))
 	}
 
@@ -48,6 +65,70 @@ func NewStealthContext(timeout time.Duration, headless bool, proxy string) (cont
 		log.Fatalf("Failed to create stealth context: %v", err)
 	}
 	return ctx, cancel
+}
+
+func createProxyAuthExtension(host, port, user, pass string) (string, error) {
+	dir, err := os.MkdirTemp("", "proxy-auth-ext")
+	if err != nil {
+		return "", err
+	}
+
+	manifest := `{
+    "version": "1.0.0",
+    "manifest_version": 2,
+    "name": "Chrome Proxy",
+    "permissions": [
+        "proxy",
+        "tabs",
+        "unlimitedStorage",
+        "storage",
+        "<all_urls>",
+        "webRequest",
+        "webRequestBlocking"
+    ],
+    "background": {
+        "scripts": ["background.js"]
+    },
+    "minimum_chrome_version": "22.0.0"
+}`
+
+	background := fmt.Sprintf(`
+var config = {
+    mode: "fixed_servers",
+    rules: {
+        singleProxy: {
+            scheme: "http",
+            host: "%s",
+            port: parseInt(%s)
+        },
+        bypassList: ["foobar.com"]
+    }
+};
+
+chrome.proxy.settings.set({value: config, scope: "regular"}, function() {});
+
+chrome.webRequest.onAuthRequired.addListener(
+    function(details) {
+        return {
+            authCredentials: {
+                username: "%s",
+                password: "%s"
+            }
+        };
+    },
+    {urls: ["<all_urls>"]},
+    ["blocking"]
+);
+`, host, port, user, pass)
+
+	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), []byte(manifest), 0644); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(dir, "background.js"), []byte(background), 0644); err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }
 
 func getChromePath() string {
