@@ -9,13 +9,13 @@ import (
 	"time"
 
 	cu "github.com/Davincible/chromedp-undetected"
+	"github.com/chromedp/chromedp"
 )
 
 // NewStealthContext creates a context with undetected-chromedp
-func NewStealthContext(timeout time.Duration, headless bool) (context.Context, context.CancelFunc) {
+func NewStealthContext(timeout time.Duration, headless bool, proxy string) (context.Context, context.CancelFunc) {
 	chromePath := getChromePath()
 
-	// Start with basic options
 	// Actually cu.NewConfig takes ...Option.
 	// We'll build a slice of options.
 	var opts []cu.Option
@@ -37,6 +37,10 @@ func NewStealthContext(timeout time.Duration, headless bool) (context.Context, c
 		} else {
 			opts = append(opts, cu.WithHeadless())
 		}
+	}
+
+	if proxy != "" {
+		opts = append(opts, cu.WithChromeFlags(chromedp.ProxyServer(proxy)))
 	}
 
 	ctx, cancel, err := cu.New(cu.NewConfig(opts...))
