@@ -87,6 +87,10 @@ func NewStealthContext(timeout time.Duration, headless bool, proxy string, userA
 		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("sec-ch-ua-platform", secPlatform)))
 	}
 
+	if source == "Safari" {
+		log.Println("[CORE] 🦁 WAR MODE ACTIVE: Injecting Safari Anti-Automation Flags...")
+	}
+
 	ctx, cancel, err := cu.New(cu.NewConfig(opts...))
 	if err != nil {
 		log.Fatalf("Failed to create stealth context: %v", err)
