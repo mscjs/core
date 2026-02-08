@@ -35,6 +35,17 @@ func NewStealthContext(timeout time.Duration, headless bool, proxy string, userA
 	// Disable automation features to help hide window.chrome (Only for Safari source)
 	if source == "Safari" {
 		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-blink-features", "AutomationControlled")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("excludeSwitches", "enable-automation")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("use-mock-keychain", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-sync", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-infobars", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-popup-blocking", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-default-apps", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("no-first-run", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("no-default-browser-check", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-background-timer-throttling", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-backgrounding-occluded-windows", "")))
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-renderer-backgrounding", "")))
 	}
 
 	// Only add WithHeadless if true (it takes no args and enables it)
