@@ -16,7 +16,8 @@ import (
 )
 
 // NewStealthContext creates a context with undetected-chromedp
-func NewStealthContext(timeout time.Duration, headless bool, proxy string) (context.Context, context.CancelFunc) {
+// NewStealthContext creates a context with undetected-chromedp
+func NewStealthContext(timeout time.Duration, headless bool, proxy string, userAgent, secPlatform string) (context.Context, context.CancelFunc) {
 	chromePath := getChromePath()
 
 	// Actually cu.NewConfig takes ...Option.
@@ -58,6 +59,16 @@ func NewStealthContext(timeout time.Duration, headless bool, proxy string) (cont
 			}
 		}
 		opts = append(opts, cu.WithChromeFlags(chromedp.ProxyServer(proxy)))
+	}
+
+	// Apply custom User-Agent if provided
+	if userAgent != "" {
+		opts = append(opts, cu.WithChromeFlags(chromedp.UserAgent(userAgent)))
+	}
+
+	// Apply Client Hints Platform if provided
+	if secPlatform != "" {
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("sec-ch-ua-platform", secPlatform)))
 	}
 
 	ctx, cancel, err := cu.New(cu.NewConfig(opts...))
