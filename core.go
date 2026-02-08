@@ -17,7 +17,7 @@ import (
 
 // NewStealthContext creates a context with undetected-chromedp
 // NewStealthContext creates a context with undetected-chromedp
-func NewStealthContext(timeout time.Duration, headless bool, proxy string, userAgent, secPlatform string) (context.Context, context.CancelFunc) {
+func NewStealthContext(timeout time.Duration, headless bool, proxy string, userAgent, secPlatform, source string) (context.Context, context.CancelFunc) {
 	chromePath := getChromePath()
 
 	// Actually cu.NewConfig takes ...Option.
@@ -31,6 +31,11 @@ func NewStealthContext(timeout time.Duration, headless bool, proxy string, userA
 	}
 
 	opts = append(opts, cu.WithTimeout(timeout))
+
+	// Disable automation features to help hide window.chrome (Only for Safari source)
+	if source == "Safari" {
+		opts = append(opts, cu.WithChromeFlags(chromedp.Flag("disable-blink-features", "AutomationControlled")))
+	}
 
 	// Only add WithHeadless if true (it takes no args and enables it)
 	if headless {
